@@ -1,0 +1,203 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidLanguage(lang) {
+      return lang in ['EN', 'JA', 'HI'];
+    }
+
+    // --- ENTITY VALIDATION HELPERS ---
+
+    function isValidMovieProject(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.synopsis is string && data.synopsis.size() <= 4000 &&
+             data.visualStyle is string && data.visualStyle.size() >= 1 && data.visualStyle.size() <= 60 &&
+             data.targetDurationMinutes is int && data.targetDurationMinutes >= 15 && data.targetDurationMinutes <= 120 &&
+             data.aspectRatio in ['16:9', '21:9', '9:16'] &&
+             isValidLanguage(data.defaultLanguage) &&
+             data.videoModelId is string && data.videoModelId.size() >= 1 && data.videoModelId.size() <= 100 &&
+             data.imageModelId is string && data.imageModelId.size() >= 1 && data.imageModelId.size() <= 100 &&
+             data.storyModelId is string && data.storyModelId.size() >= 1 && data.storyModelId.size() <= 100 &&
+             data.status in ['draft', 'generating', 'ready'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidAnimeCharacter(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+             data.role is string && data.role.size() <= 60 &&
+             data.visualDna is string && data.visualDna.size() <= 2000 &&
+             isValidLanguage(data.voiceLanguage) &&
+             data.voicePitch is number && data.voicePitch >= 0.5 && data.voicePitch <= 2.0 &&
+             data.voiceSpeed is number && data.voiceSpeed >= 0.5 && data.voiceSpeed <= 2.0 &&
+             data.defaultEmotion is string && data.defaultEmotion.size() >= 1 && data.defaultEmotion.size() <= 40 &&
+             data.referenceImagePath is string && data.referenceImagePath.size() <= 500 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidMovieScene(data, userId, projectId) {
+      return data.userId is string && data.userId == userId &&
+             data.projectId is string && data.projectId == projectId &&
+             data.orderIndex is int && data.orderIndex >= 0 && data.orderIndex <= 1000 &&
+             data.actNumber is int && data.actNumber >= 1 && data.actNumber <= 12 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.visualPrompt is string && data.visualPrompt.size() <= 3000 &&
+             data.dialogueText is string && data.dialogueText.size() <= 1000 &&
+             isValidLanguage(data.dialogueLanguage) &&
+             data.speakerCharacterId is string && data.speakerCharacterId.size() <= 128 &&
+             data.characterIds is list && data.characterIds.size() <= 8 &&
+             (data.characterIds.size() == 0 || data.characterIds[0] is string) &&
+             data.emotion is string && data.emotion.size() >= 1 && data.emotion.size() <= 40 &&
+             data.cameraMovement is string && data.cameraMovement.size() >= 1 && data.cameraMovement.size() <= 40 &&
+             data.soundEffect is string && data.soundEffect.size() >= 1 && data.soundEffect.size() <= 40 &&
+             data.bgmMood is string && data.bgmMood.size() >= 1 && data.bgmMood.size() <= 40 &&
+             data.durationSeconds is int && data.durationSeconds >= 3 && data.durationSeconds <= 120 &&
+             data.keyframePath is string && data.keyframePath.size() <= 500 &&
+             data.videoClipPath is string && data.videoClipPath.size() <= 500 &&
+             data.audioPath is string && data.audioPath.size() <= 500 &&
+             data.renderStatus in ['pending', 'keyframe_ready', 'video_ready', 'error'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // --- COLLECTION RULES ---
+
+    match /users/{userId}/projects/{projectId} {
+      allow get: if isOwner(userId) && isValidId(projectId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(projectId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'title', 'synopsis', 'visualStyle', 'targetDurationMinutes',
+                         'aspectRatio', 'defaultLanguage', 'videoModelId', 'imageModelId',
+                         'storyModelId', 'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'title', 'synopsis', 'visualStyle', 'targetDurationMinutes',
+                         'aspectRatio', 'defaultLanguage', 'videoModelId', 'imageModelId',
+                         'storyModelId', 'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidMovieProject(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(projectId) &&
+                       isValidMovieProject(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'synopsis', 'visualStyle', 'targetDurationMinutes',
+                         'aspectRatio', 'defaultLanguage', 'videoModelId', 'imageModelId',
+                         'storyModelId', 'status', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(projectId);
+
+      // Subcollection: Scenes belonging to Project
+      match /scenes/{sceneId} {
+        allow get: if isOwner(userId) && isValidId(projectId) && isValidId(sceneId);
+        allow list: if isOwner(userId) && isValidId(projectId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidId(sceneId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'projectId', 'orderIndex', 'actNumber', 'title',
+                           'visualPrompt', 'dialogueText', 'dialogueLanguage',
+                           'speakerCharacterId', 'characterIds', 'emotion',
+                           'cameraMovement', 'soundEffect', 'bgmMood', 'durationSeconds',
+                           'keyframePath', 'videoClipPath', 'audioPath', 'renderStatus',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'projectId', 'orderIndex', 'actNumber', 'title',
+                           'visualPrompt', 'dialogueText', 'dialogueLanguage',
+                           'speakerCharacterId', 'characterIds', 'emotion',
+                           'cameraMovement', 'soundEffect', 'bgmMood', 'durationSeconds',
+                           'keyframePath', 'videoClipPath', 'audioPath', 'renderStatus',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidMovieScene(incoming(), userId, projectId) &&
+                         exists(/databases/$(database)/documents/users/$(userId)/projects/$(projectId));
+
+        allow update: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidId(sceneId) &&
+                         isValidMovieScene(incoming(), userId, projectId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().projectId == existing().projectId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'orderIndex', 'actNumber', 'title', 'visualPrompt', 'dialogueText',
+                           'dialogueLanguage', 'speakerCharacterId', 'characterIds', 'emotion',
+                           'cameraMovement', 'soundEffect', 'bgmMood', 'durationSeconds',
+                           'keyframePath', 'videoClipPath', 'audioPath', 'renderStatus',
+                           'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(projectId) && isValidId(sceneId);
+      }
+    }
+
+    match /users/{userId}/characters/{characterId} {
+      allow get: if isOwner(userId) && isValidId(characterId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(characterId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'name', 'role', 'visualDna', 'voiceLanguage',
+                         'voicePitch', 'voiceSpeed', 'defaultEmotion', 'referenceImagePath',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'name', 'role', 'visualDna', 'voiceLanguage',
+                         'voicePitch', 'voiceSpeed', 'defaultEmotion', 'referenceImagePath',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidAnimeCharacter(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(characterId) &&
+                       isValidAnimeCharacter(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'name', 'role', 'visualDna', 'voiceLanguage',
+                         'voicePitch', 'voiceSpeed', 'defaultEmotion', 'referenceImagePath',
+                         'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(characterId);
+    }
+  }
+}

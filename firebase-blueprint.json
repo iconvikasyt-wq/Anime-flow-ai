@@ -1,0 +1,282 @@
+{
+  "entities": {
+    "MovieProject": {
+      "title": "MovieProject",
+      "description": "A long-form 3D anime movie project (15 to 120 minutes) owned by an authenticated creator.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the project owner."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the anime movie project."
+        },
+        "synopsis": {
+          "type": "string",
+          "description": "Full story concept or screenplay premise."
+        },
+        "visualStyle": {
+          "type": "string",
+          "description": "3D anime rendering aesthetic identifier."
+        },
+        "targetDurationMinutes": {
+          "type": "integer",
+          "description": "Target runtime between 15 and 120 minutes."
+        },
+        "aspectRatio": {
+          "type": "string",
+          "enum": ["16:9", "21:9", "9:16"],
+          "description": "Cinematic framing aspect ratio."
+        },
+        "defaultLanguage": {
+          "type": "string",
+          "enum": ["EN", "JA", "HI"],
+          "description": "Primary voice language (English, Japanese, or Hindi)."
+        },
+        "videoModelId": {
+          "type": "string",
+          "description": "Selected video synthesis model ID."
+        },
+        "imageModelId": {
+          "type": "string",
+          "description": "Selected image/keyframe generation model ID."
+        },
+        "storyModelId": {
+          "type": "string",
+          "description": "Selected Gemini screenwriting model ID."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "generating", "ready"],
+          "description": "Project production state."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server-generated creation timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server-generated update timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "synopsis",
+        "visualStyle",
+        "targetDurationMinutes",
+        "aspectRatio",
+        "defaultLanguage",
+        "videoModelId",
+        "imageModelId",
+        "storyModelId",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AnimeCharacter": {
+      "title": "AnimeCharacter",
+      "description": "A consistent 3D anime character profile with visual DNA and voice configuration.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the character owner."
+        },
+        "name": {
+          "type": "string",
+          "description": "Character display name."
+        },
+        "role": {
+          "type": "string",
+          "description": "Narrative role (Protagonist, Antagonist, etc.)."
+        },
+        "visualDna": {
+          "type": "string",
+          "description": "Locked visual consistency prompt describing face, hair, eyes, and outfit."
+        },
+        "voiceLanguage": {
+          "type": "string",
+          "enum": ["EN", "JA", "HI"],
+          "description": "Voice synthesis language."
+        },
+        "voicePitch": {
+          "type": "number",
+          "description": "Voice pitch multiplier (0.5 to 2.0)."
+        },
+        "voiceSpeed": {
+          "type": "number",
+          "description": "Voice speaking rate multiplier (0.5 to 2.0)."
+        },
+        "defaultEmotion": {
+          "type": "string",
+          "description": "Default emotional acting preset."
+        },
+        "referenceImagePath": {
+          "type": "string",
+          "description": "Device-local file path to character reference or turnaround sheet."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server-generated creation timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server-generated update timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "role",
+        "visualDna",
+        "voiceLanguage",
+        "voicePitch",
+        "voiceSpeed",
+        "defaultEmotion",
+        "referenceImagePath",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MovieScene": {
+      "title": "MovieScene",
+      "description": "An individual storyboard and video scene within a movie project.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the scene owner."
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Parent MovieProject document ID."
+        },
+        "orderIndex": {
+          "type": "integer",
+          "description": "Zero-based timeline sequence index."
+        },
+        "actNumber": {
+          "type": "integer",
+          "description": "Narrative act number (1-12)."
+        },
+        "title": {
+          "type": "string",
+          "description": "Scene title."
+        },
+        "visualPrompt": {
+          "type": "string",
+          "description": "Detailed 3D cinematic anime visual prompt."
+        },
+        "dialogueText": {
+          "type": "string",
+          "description": "Spoken dialogue line for voice synthesis and lip-sync."
+        },
+        "dialogueLanguage": {
+          "type": "string",
+          "enum": ["EN", "JA", "HI"],
+          "description": "Dialogue language code."
+        },
+        "speakerCharacterId": {
+          "type": "string",
+          "description": "Character ID of the active speaker."
+        },
+        "characterIds": {
+          "type": "array",
+          "description": "Up to 8 character IDs appearing in this scene."
+        },
+        "emotion": {
+          "type": "string",
+          "description": "Scene character emotion expression."
+        },
+        "cameraMovement": {
+          "type": "string",
+          "description": "3D camera motion preset."
+        },
+        "soundEffect": {
+          "type": "string",
+          "description": "Procedural/AI sound effect layer."
+        },
+        "bgmMood": {
+          "type": "string",
+          "description": "Background music mood layer."
+        },
+        "durationSeconds": {
+          "type": "integer",
+          "description": "Scene clip duration in seconds."
+        },
+        "keyframePath": {
+          "type": "string",
+          "description": "Device-local path to generated keyframe image."
+        },
+        "videoClipPath": {
+          "type": "string",
+          "description": "Device-local path to rendered MP4 scene clip."
+        },
+        "audioPath": {
+          "type": "string",
+          "description": "Device-local path to synthesized dialogue and SFX WAV."
+        },
+        "renderStatus": {
+          "type": "string",
+          "enum": ["pending", "keyframe_ready", "video_ready", "error"],
+          "description": "Rendering state of the scene."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server-generated creation timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server-generated update timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "projectId",
+        "orderIndex",
+        "actNumber",
+        "title",
+        "visualPrompt",
+        "dialogueText",
+        "dialogueLanguage",
+        "speakerCharacterId",
+        "characterIds",
+        "emotion",
+        "cameraMovement",
+        "soundEffect",
+        "bgmMood",
+        "durationSeconds",
+        "keyframePath",
+        "videoClipPath",
+        "audioPath",
+        "renderStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/MovieProject" },
+      "description": "User-owned long-form anime movie projects."
+    },
+    "/users/{userId}/characters/{characterId}": {
+      "schema": { "$ref": "#/entities/AnimeCharacter" },
+      "description": "User-owned consistent 3D anime character library."
+    },
+    "/users/{userId}/projects/{projectId}/scenes/{sceneId}": {
+      "schema": { "$ref": "#/entities/MovieScene" },
+      "description": "Storyboard and timeline scenes belonging to a specific movie project."
+    }
+  }
+}

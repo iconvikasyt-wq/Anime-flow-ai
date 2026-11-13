@@ -1,0 +1,6 @@
+{
+  "name": "AnimeFlow",
+  "description": "AI 3D Anime Filmmaking Studio for multi-scene storyboards, consistent 3D anime characters, multilingual dialogue, and real video synthesis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
