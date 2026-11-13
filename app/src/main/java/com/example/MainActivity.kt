@@ -8,8 +8,11 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -64,10 +67,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
@@ -105,6 +112,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
@@ -165,6 +173,7 @@ private fun AnimeFlowAppRoot() {
         initialValue = Firebase.auth.currentUser
     )
     var autoSignInAttempted by remember { mutableStateOf(false) }
+    var showSplash by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         if (!autoSignInAttempted && Firebase.auth.currentUser == null) {
@@ -177,21 +186,88 @@ private fun AnimeFlowAppRoot() {
                 scope = scope
             )
         }
+        delay(850L)
+        showSplash = false
     }
 
-    val user = currentUser
-    if (user == null) {
-        AuthScreen(onAuthSuccess = {})
-    } else {
-        key(user.uid) {
-            MainStudioShell(
-                currentUserId = user.uid,
-                onSignOut = {
-                    signOut(
-                        credentialManager = credentialManager,
-                        scope = scope
+    Box(modifier = Modifier.fillMaxSize()) {
+        val user = currentUser
+        if (user == null) {
+            AuthScreen(onAuthSuccess = {})
+        } else {
+            key(user.uid) {
+                MainStudioShell(
+                    currentUserId = user.uid,
+                    onSignOut = {
+                        signOut(
+                            credentialManager = credentialManager,
+                            scope = scope
+                        )
+                    }
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showSplash,
+            exit = fadeOut()
+        ) {
+            AnimeFlowSplashOverlay()
+        }
+    }
+}
+
+@Composable
+private fun AnimeFlowSplashOverlay() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        CyanElectric.copy(alpha = 0.14f),
+                        ObsidianCanvas,
+                        ObsidianCanvas
                     )
-                }
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = ObsidianSurface,
+                border = BorderStroke(2.dp, CyanElectric.copy(alpha = 0.65f)),
+                modifier = Modifier.size(120.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_animeflow_foreground_1794537937456),
+                    contentDescription = "AnimeFlow Logo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(10.dp)
+                        .clip(CircleShape)
+                )
+            }
+            Text(
+                text = "ANIMEFLOW",
+                style = MaterialTheme.typography.headlineMedium,
+                color = TextPrimary,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "3D AI ANIME FILM STUDIO",
+                style = MaterialTheme.typography.labelMedium,
+                color = CyanElectric
+            )
+            LinearProgressIndicator(
+                color = SakuraMagenta,
+                trackColor = ObsidianBorder,
+                modifier = Modifier.width(160.dp)
             )
         }
     }

@@ -2,4 +2,5 @@
 <paths>
     <files-path name="animeflow_media" path="." />
     <cache-path name="animeflow_cache" path="." />
+    <external-files-path name="animeflow_movies" path="Movies" />
 </paths>

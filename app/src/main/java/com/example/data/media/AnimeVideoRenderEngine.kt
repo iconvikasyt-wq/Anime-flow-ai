@@ -23,6 +23,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
+import androidx.core.content.FileProvider
 import com.example.domain.model.CameraMovement
 import com.example.domain.model.SoundEffectType
 import kotlinx.coroutines.Dispatchers
@@ -295,20 +296,28 @@ class AnimeVideoRenderEngine(private val context: Context) {
         }
         val resolver = context.contentResolver
         val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)
-            ?: throw IllegalStateException("Could not create MediaStore video entry.")
+        if (uri != null) {
+            resolver.openOutputStream(uri)?.use { out ->
+                FileInputStream(mp4File).use { input ->
+                    input.copyTo(out)
+                }
+            } ?: throw IllegalStateException("Failed to open MediaStore output stream.")
 
-        resolver.openOutputStream(uri)?.use { out ->
-            FileInputStream(mp4File).use { input ->
-                input.copyTo(out)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                values.clear()
+                values.put(MediaStore.Video.Media.IS_PENDING, 0)
+                resolver.update(uri, values, null, null)
             }
-        } ?: throw IllegalStateException("Failed to open MediaStore output stream.")
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            values.clear()
-            values.put(MediaStore.Video.Media.IS_PENDING, 0)
-            resolver.update(uri, values, null, null)
+            return@withContext uri
         }
-        uri
+
+        // Legacy fallback (e.g. Android 7-9 without external storage runtime permission)
+        val appMoviesDir = context.getExternalFilesDir(Environment.DIRECTORY_MOVIES)
+            ?: File(context.filesDir, "animeflow/exports")
+        appMoviesDir.mkdirs()
+        val exportedCopy = File(appMoviesDir, "$displayName.mp4")
+        mp4File.copyTo(exportedCopy, overwrite = true)
+        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", exportedCopy)
     }
 
     private fun encodeVideoFramesToMp4(
